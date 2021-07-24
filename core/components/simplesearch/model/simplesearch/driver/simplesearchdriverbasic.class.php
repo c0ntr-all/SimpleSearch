@@ -37,7 +37,7 @@ class SimpleSearchDriverBasic extends SimpleSearchDriver
         $exclude       = $this->modx->getOption('exclude', $scriptProperties, '');
         $useAllWords   = $this->modx->getOption('useAllWords', $scriptProperties, false);
         $searchStyle   = $this->modx->getOption('searchStyle', $scriptProperties, 'partial');
-        $hideMenu      = (int) $this->modx->getOption('hideMenu', $scriptProperties, 2);
+        $hideMenu      = $this->modx->getOption('hideMenu', $scriptProperties, 2);
         $maxWords      = $this->modx->getOption('maxWords', $scriptProperties, 7);
         $andTerms      = $this->modx->getOption('andTerms', $scriptProperties, true);
         $matchWildcard = $this->modx->getOption('matchWildcard', $scriptProperties, true);
@@ -257,8 +257,13 @@ class SimpleSearchDriverBasic extends SimpleSearchDriver
                 $c->sortby('modResource.' . $sortBys[$i], strtoupper($dir));
             }
         }
-
         $resources = $this->modx->getCollection('modResource', $c);
+
+        $c->prepare();
+        $c->stmt->execute();
+        $rawArray = $c->stmt->fetchAll(PDO::FETCH_ASSOC);
+        $idsList = array_column($rawArray, 'modResource_id');
+
         if (empty($scriptProperties['sortBy'])) {
             $resources = $this->sortResults($resources, $scriptProperties);
         }
@@ -302,6 +307,7 @@ class SimpleSearchDriverBasic extends SimpleSearchDriver
         return array(
             'total'   => $total,
             'results' => $list,
+            'raw' => $idsList,
         );
     }
 
