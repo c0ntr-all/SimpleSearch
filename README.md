@@ -1,43 +1,19 @@
 # MODX SimpleSearch
-![SimpleSearch version](https://img.shields.io/badge/version-2.1.0-blue.svg) ![MODX Extra by Sterc](https://img.shields.io/badge/checked%20by-sterc-ff69b4.svg) ![MODX version requirements](https://img.shields.io/badge/modx%20version%20requirement-2.0%2B-brightgreen.svg)
+Это Fork SimpleSearch by Sterc - https://github.com/Sterc/SimpleSearch
+Добавлена возможность чтобы поиск мог отображать категории, в которых найдены ресурсы.
 
-## Installation
-Simply install it through the top menu ```Extras > Installer``` and search for ```SimpleSearch```. Install it from there. After installing it, it is recommended to clear your MODX cache, through the top menu ```Manage > Clear Cache```.
+##Использование
+*Пока можно только указать категории, в которых искать. Сниппет simplesearch 72 строка, переменная `$categoriesForSearch`.
 
-## Upgrade risks
-First of all: ALWAYS MAKE A BACKUP BEFORE UPDATING! 
+Указываем в массиве id категорий, результаты которых отображать. Чтобы не было расхождения результатов, эти id должны совпадать с  
+параметром `ids` для сниппета simplesearch, который указывает где искать.
 
-Upgrading to 2.0.0 from 1.* is highly recommended, but it does introduce some risks.
-
-Important changes from 1.* to 2.0.0:
-- The namespace has been changed from `sisea` to `simplesearch`. If you're using custom System Settings, then please migrate them.
-- The placeholder prefix has also been changed from `sisea` to `simplesearch`.
-- The ElasticSearch and SOLR drivers have been removed, because they were in need of improvements. Future drivers should be seperate addons. Feel free to ask us for help here.
-
-## Autosuggest
-A processor has been provided for retrieving a list of search suggestions based on a Template Variable containing a comma delimited list of search terms. 
-You can configure the TV to use by setting `simplesearch.autosuggest_tv`, which can either be the TV name or id.
-
-You can use the example (requires jQuery) code below for retrieving a list of search suggestions.
-
-```javascript
-$('.simplesearch-search-form input[type="text"]').on('keyup', function () {
-    var value = $(this).val();
-
-    $.ajax({
-        url         : '/assets/components/simplesearch/connector.php?action=web/autosuggestions&search=' + value,
-        dataType    : 'JSON',
-        complete    : function (result) {
-            console.log(result.results);
-        }
-    });
-});
+В чанке с результатами можно вывести категории таким образом:
 ```
-
-## Bugs and feature requests
-We value your feedback, feature requests and bug reports. Please issue them on [Github](https://github.com/Sterc/SimpleSearch/issues/new).
-
-# Free Extra
-This is a free extra and the code is publicly available for you to change. The extra is being actively maintained and you're free to put in pull requests which match our roadmap. Please create an issue if the pull request differs from the roadmap so we can make sure we're on the same page.
-
-Need help? [Approach our support desk for paid premium support.](mailto:service@sterc.com)
+    <ul class="search-categories">
+      <li class="search-categories__item"><div>Все результаты</div><div>{$_pls['total']}</div></li>
+      {foreach $_pls['categories'] as $category}
+        <li class="search-categories__item"><div>{$category.pagetitle}</div><div>{$category.count}</div></li>
+      {/foreach}
+    </ul>
+```
