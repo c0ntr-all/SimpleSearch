@@ -7,10 +7,10 @@
  * @package simplesearch
  */
 require_once $modx->getOption(
-    'simplesearch.core_path',
-    null,
-    $modx->getOption('core_path') . 'components/simplesearch/'
-) . 'model/simplesearch/simplesearch.class.php';
+        'simplesearch.core_path',
+        null,
+        $modx->getOption('core_path') . 'components/simplesearch/'
+    ) . 'model/simplesearch/simplesearch.class.php';
 $search = new SimpleSearch($modx, $scriptProperties);
 
 /* Find search index and toplaceholder setting */
@@ -66,6 +66,59 @@ $noResults = true;
 $response     = $search->getSearchResults($searchString, $scriptProperties);
 $placeholders = array('query' => $searchString);
 $resultsTpl   = array('default' => array('results' => array(), 'total' => $response['total']));
+$arrCategoriesCount = 0;
+
+if(!empty($response['raw'])) {
+    //TODO: take it out to parameter that will determine where searching for categories will be.
+    $categoriesForSearch = [3, 6, 175, 28, 27, 41];
+    $arrCategories = array_fill_keys($categoriesForSearch, 0);
+
+//Здесь лежат родители найденных ресурсов в качестве ключа и количество ресурсов в качестве значения
+    $searchResultIds = array_count_values($response['raw']);
+
+    foreach($searchResultIds as $parent => $count) {
+        $tableName = $modx->getTableName('modResource');
+
+        //Рекурсивный запрос на поиск всех родителей конкретного ресурса
+        $sql = "SELECT T2.id
+          FROM (
+              SELECT
+                  @r AS _id,
+                  (SELECT @r := parent FROM {$tableName} WHERE id = _id) AS parent,
+                  @l := @l + 1 AS lvl
+              FROM
+                  (SELECT @r := {$parent}, @l := 0) vars,
+                  {$tableName} m
+              WHERE @r <> 0) T1
+          JOIN {$tableName} T2
+          ON T1._id = T2.id
+          ORDER BY T1.lvl DESC";
+        $result = $modx->query($sql);
+        $row = $result->fetchAll(PDO::FETCH_ASSOC);
+        $arrAllParents = array_column($row, 'id');
+
+        //Складывание результатов
+        foreach($arrCategories as $category => $total) {
+            if(in_array($category, $arrAllParents)) {
+                $arrCategories[$category] += $count;
+            }
+        }
+
+        //Поиск заголовков категорий для вставки в шаблон
+        $query = $modx->newQuery('modResource');
+        $query->select('id,pagetitle,longtitle');
+        $query->where(['id:IN' => $categoriesForSearch]);
+        $arrCategoriesResources = $modx->getCollection('modResource', $query);
+        $arrCategoriesCount = [];
+        foreach($arrCategoriesResources as $obCategory) {
+            $arrCategory = $obCategory->toArray('', false, true);
+            $arrCategory['count'] = $arrCategories[$arrCategory['id']];
+            $arrCategoriesCount[] = $arrCategory;
+        }
+    }
+}
+
+
 if (!empty($response['results'])) {
     /* iterate through search results */
     foreach ($response['results'] as $resourceArray) {
@@ -109,13 +162,13 @@ if (!empty($postHooks)) {
 
     $search->loadHooks('post');
     $search->postHooks->loadMultiple($postHooks, $response['results'],
-                                     array(
-                                         'hooks'   => $postHooks,
-                                         'search'  => $searchString,
-                                         'offset'  => !empty($_GET[$offsetIndex]) ? (int) $_GET[$offsetIndex] : 0,
-                                         'limit'   => $limit,
-                                         'perPage' => $limit,
-                                     )
+        array(
+            'hooks'   => $postHooks,
+            'search'  => $searchString,
+            'offset'  => !empty($_GET[$offsetIndex]) ? (int) $_GET[$offsetIndex] : 0,
+            'limit'   => $limit,
+            'perPage' => $limit,
+        )
     );
 
     if (!empty($search->postHooks->facets)) {
@@ -172,6 +225,7 @@ if (!empty($placeholders['results'])) {
 
 $placeholders['query'] = $searchString;
 $placeholders['facet'] = $activeFacet;
+$placeholders['categories'] = $arrCategoriesCount;
 
 /* output */
 $modx->setPlaceholder($placeholderPrefix . 'query', $searchString);
