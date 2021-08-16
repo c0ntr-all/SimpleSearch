@@ -68,9 +68,8 @@ $placeholders = array('query' => $searchString);
 $resultsTpl   = array('default' => array('results' => array(), 'total' => $response['total']));
 $arrCategoriesCount = 0;
 
-if(!empty($response['raw'])) {
-    //TODO: take it out to parameter that will determine where searching for categories will be.
-    $categoriesForSearch = [3, 6, 175, 28, 27, 41];
+if(!empty($response['raw']) && !empty($ids)) {
+    $categoriesForSearch = explode(',', $ids);
     $arrCategories = array_fill_keys($categoriesForSearch, 0);
 
 //Здесь лежат родители найденных ресурсов в качестве ключа и количество ресурсов в качестве значения
